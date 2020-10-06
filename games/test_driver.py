@@ -92,7 +92,7 @@ class MuZeroConfig:
         self.momentum = 0.9  # Used only if optimizer is SGD
 
         # Exponential learning rate schedule
-        self.lr_init = 0.005  # Initial learning rate
+        self.lr_init = 0.001 # 0.005  # Initial learning rate
         self.lr_decay_rate = 1  # Set it to 1 to use a constant learning rate
         self.lr_decay_steps = 1000
 
@@ -232,7 +232,7 @@ class Selenium_webdriver:
         window_before = self.driver.window_handles[0]
         self.driver.get(url_address)
 
-    def get_discovered_elements(self):
+    def get_site_elements(self):
         return None
 
     def click(self, current_element):
@@ -252,38 +252,44 @@ class Selenium_webdriver:
 class Webdriver_imitation:
 
     def __init__(self):
-        #self.discovered_elements = {'clickables': ['Sign', 'Currency', 'Skip'], 'selectables': [], 'enterables': ['Your email']}
-        #self.discovered_elements = {'clickables': ['Sign', 'Currency', 'Skip'], 'selectables': [], 'enterables': ['Hello']}
+        #self.site_elements = {'clickables': ['Sign', 'Currency', 'Skip'], 'selectables': [], 'enterables': ['Your email']}
+        #self.site_elements = {'clickables': ['Sign', 'Currency', 'Skip'], 'selectables': [], 'enterables': ['Hello']}
         self.reset()
 
     def reset(self):
-        self.discovered_elements = {
+        self.site_elements = {
             'clickables': ['Sign', 'Currency', 'Skip'], 
             'selectables': [], 
             'enterables': ['Hi']
             }
 
-    def get_discovered_elements(self):
-        return self.discovered_elements
+    def get_site_elements(self):
+        return self.site_elements
 
     def click(self, current_element_name):
-        if current_element_name in self.discovered_elements['clickables']:
-            index = self.discovered_elements['clickables'].index(current_element_name)
-            self.discovered_elements['clickables'][index] = None
+        print("clickables:", self.site_elements['clickables'])
+        print("current_element_name:", current_element_name)
+        if current_element_name in self.site_elements['clickables']:
+            index = self.site_elements['clickables'].index(current_element_name)
+            self.site_elements['clickables'][index] = None
         else:
             logging.warning("{} is not in the clickables list".format(current_element_name))
 
     def enter(self, current_element_name, data):
-        if current_element_name in self.discovered_elements['enterables']:
-            index = self.discovered_elements['enterables'].index(current_element_name)
-            self.discovered_elements['enterables'][index] = None
+        if current_element_name in self.site_elements['enterables']:
+            index = self.site_elements['enterables'].index(current_element_name)
+            self.site_elements['enterables'][index] = None
         else:
             logging.warning("{} is not in the enterables list".format(current_element_name))
 
 
-def wrong_movement():
-    print("wrong_movement")
+def negative_reward():
+    print("-1")
     return -1
+
+def positive_reward():
+    print("+1")
+    return +1
 
 
 class TestDriverEnviroment:
@@ -375,7 +381,7 @@ class TestDriverEnviroment:
         print("cmd:", cmd)
         #cmd = self.action_number_to_cmd[action]
         reward = 0
-        discovered_elements = self.driver.get_discovered_elements()
+        site_elements = self.driver.get_site_elements()
         current_element = None
 
         if cmd == "WAIT":
@@ -388,34 +394,39 @@ class TestDriverEnviroment:
                 "CHOOSE_FIRST_ENTER": "enterables"
             }
             self.chosen_type = cmd_to_chosen_type[cmd]
-            if len(discovered_elements[self.chosen_type]) > 0:
-                #current_element = discovered_elements[self.chosen_type][0]
+            if len(site_elements[self.chosen_type]) > 0:
+                #current_element = site_elements[self.chosen_type][0]
                 self.chosen_number = 0
             else:
-                reward = wrong_movement()
+                reward = negative_reward()
 
         elif cmd == "NEXT":
             if self.chosen_type:
-                if len(discovered_elements[self.chosen_type]) > self.chosen_number + 1:
+                if len(site_elements[self.chosen_type]) > self.chosen_number + 1:
                     self.chosen_number += 1
-                    #current_element = discovered_elements[self.chosen_type][self.chosen_number]
+                    #current_element = site_elements[self.chosen_type][self.chosen_number]
                 else:
-                    reward = wrong_movement()
+                    reward = negative_reward()
             else:
-                reward = wrong_movement()
+                reward = negative_reward()
 
         elif cmd in {"CLICK", "ENTER", "SELECT"}:
 
-            if not (self.chosen_type and self.chosen_number < len(discovered_elements[self.chosen_type])):
-                reward = wrong_movement()
+            if not (self.chosen_type and self.chosen_number < len(site_elements[self.chosen_type])):
+                reward = negative_reward()
             else:
-                current_element = discovered_elements[self.chosen_type][self.chosen_number]
-                if cmd == "CLICK":
-                    self.driver.click(current_element)
-                elif cmd == "ENTER":
-                    self.driver.enter(current_element, data="Hello world")
-                elif cmd == "SELECT":
-                    pass
+                #reward = positive_reward()
+                current_element = site_elements[self.chosen_type][self.chosen_number]
+                if current_element is None: # perhaps, the element has been already used
+                    reward = negative_reward()  # prevent clicking the same element twice
+                else:
+                    reward = positive_reward()
+                    if cmd == "CLICK":
+                        self.driver.click(current_element)
+                    elif cmd == "ENTER":
+                        self.driver.enter(current_element, data="Hello world")
+                    elif cmd == "SELECT":
+                        pass
 
         done = self.have_winner() or len(self.legal_actions()) == 0
 
@@ -438,16 +449,16 @@ class TestDriverEnviroment:
         #board_to_play = numpy.full((3, 3), self.player).astype(float)
         #return numpy.array([board_player1, board_player2, board_to_play])
 
-        #discovered_elements = {'clickables': ['Sign', 'Currency', 'Skip'], 'selectables': [], 'enterables': ['Your email']}
-        discovered_elements = self.driver.get_discovered_elements()
-        #print("discovered_elements:", discovered_elements)
-        #clickables  = discovered_elements.get('clickables')
-        #selectables = discovered_elements.get('selectables')
-        #enterables  = discovered_elements.get('enterables')
+        #site_elements = {'clickables': ['Sign', 'Currency', 'Skip'], 'selectables': [], 'enterables': ['Your email']}
+        site_elements = self.driver.get_site_elements()
+        #print("site_elements:", site_elements)
+        #clickables  = site_elements.get('clickables')
+        #selectables = site_elements.get('selectables')
+        #enterables  = site_elements.get('enterables')
         de_type = {0: 'clickables', 1: 'selectables', 2: 'enterables'}
-        lengths = [len(discovered_elements[k]) for k in discovered_elements]
+        lengths = [len(site_elements[k]) for k in site_elements]
         width = 5
-        env_state = [[1 if i<lengths[j] and discovered_elements[de_type[j]][i] else 0 for i in range(width)] for j in range(len(lengths))]
+        env_state = [[1 if i<lengths[j] and site_elements[de_type[j]][i] else 0 for i in range(width)] for j in range(len(lengths))]
         env_state = np.array(env_state, dtype=np.int32)
 
         int_state = np.zeros((3, width), dtype=np.int32)
@@ -476,8 +487,8 @@ class TestDriverEnviroment:
         observation = self.get_observation()
         #sum_obs = np.sum(observation)  # only env_state
         sum_obs = np.sum(observation[:,:3])  # only env_state
-        #print("sum_obs={}, wins={}\n{}".format(sum_obs, self.wins, str(observation)))
-        print("sum_obs={}, wins={}".format(sum_obs, self.wins))
+        print("sum_obs={}, wins={}\n{}".format(sum_obs, self.wins, str(observation)))
+        #print("sum_obs={}, wins={}".format(sum_obs, self.wins))
         if sum_obs < 0.01:
             print("YOU WIN")
             #sys.exit()
@@ -500,6 +511,7 @@ if __name__ == "__main__":
     #env.step("WAIT")
     env.step("CHOOSE_FIRST_CLICK")
     env.step("NEXT")
+    env.step("CLICK")
     env.step("CLICK")
     print(env.get_observation())
 
