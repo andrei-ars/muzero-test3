@@ -153,6 +153,7 @@ class Game(AbstractGame):
         Returns:
             The new observation, the reward and a boolean if the game has ended.
         """
+        self.step_count += 1
         observation, reward, done, _ = self.env.step(action)
         return numpy.array(observation), reward, done
 
