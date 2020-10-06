@@ -29,7 +29,7 @@ class MuZeroConfig:
 
         ### Game
         self.observation_shape = (1, 6, 5)  # Dimensions of the game observation, must be 3D (channel, height, width). For a 1D array, please reshape it to (1, 1, length of array)
-        self.action_space = [i for i in range(3)]  # Fixed list of all possible actions. You should only edit the length
+        self.action_space = [i for i in range(7)]  # Fixed list of all possible actions. You should only edit the length
         self.players = [i for i in range(1)]  # List of players. You should only edit the length
         self.stacked_observations = 0  # Number of previous observations and previous actions to add to the current observation
 
@@ -40,7 +40,7 @@ class MuZeroConfig:
         ### Self-Play
         self.num_workers = 1 # 4  # Number of simultaneous threads/workers self-playing to feed the replay buffer
         self.selfplay_on_gpu = False
-        self.max_moves = 20 #15  # Maximum number of moves if game is not finished before
+        self.max_moves = 30 #15  # Maximum number of moves if game is not finished before
         self.num_simulations = 20  # Number of future moves self-simulated
         self.discount = 0.997  # Chronological discount of the reward
         self.temperature_threshold = None  # Number of moves before dropping temperature to 0 (ie playing according to the max)
@@ -79,7 +79,7 @@ class MuZeroConfig:
         ### Training
         self.results_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../results", os.path.basename(__file__)[:-3], datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))  # Path to store the model weights and TensorBoard logs
         self.save_model = True  # Save the checkpoint in results_path as model.checkpoint
-        self.training_steps = 200  # Total number of training steps (ie weights update according to a batch)
+        self.training_steps = 2000  # Total number of training steps (ie weights update according to a batch)
         self.batch_size = 1 # 128  # Number of parts of games to train on at each training step
         self.checkpoint_interval = 100  # Number of training steps before using the model for self-playing
         self.value_loss_weight = 1  # Scale the value loss to avoid overfitting of the value function, paper recommends 0.25 (See paper appendix Reanalyze)
@@ -251,7 +251,11 @@ class Webdriver_imitation:
 
     def __init__(self):
         #self.discovered_elements = {'clickables': ['Sign', 'Currency', 'Skip'], 'selectables': [], 'enterables': ['Your email']}
-        self.discovered_elements = {'clickables': ['Sign', 'Currency', 'Skip'], 'selectables': [], 'enterables': []}
+        #self.discovered_elements = {'clickables': ['Sign', 'Currency', 'Skip'], 'selectables': [], 'enterables': ['Hello']}
+        self.reset()
+
+    def reset(self):
+        self.discovered_elements = {'clickables': ['Sign', 'Currency', 'Skip'], 'selectables': [], 'enterables': ['Hello']}
 
     def get_discovered_elements(self):
         return self.discovered_elements
@@ -315,11 +319,11 @@ class TestDriverEnviroment:
             #"OPEN":     "Open the given website",
             (0, "NEXT",     "Go to the next active element"),
             (1, "CHOOSE_FIRST_CLICK",  "Choose the firse clickable element"),
-            (2, "CLICK",    "Click on the current element"),
-            #(2, "CHOOSE_FIRST_ENTER",  "Choose the firse enterable element"),
-            #(3, "CHOOSE_FIRST_SELECT", "Choose the firse selectable element"),
-            #(5, "ENTER",    "Enter DATA in the current element"),
-            #(6, "SELECT",    "Select the current element"),
+            (2, "CHOOSE_FIRST_ENTER",  "Choose the firse enterable element"),
+            (3, "CHOOSE_FIRST_SELECT", "Choose the firse selectable element"),
+            (4, "CLICK",    "Click on the current element"),
+            (5, "ENTER",    "Enter DATA in the current element"),
+            (6, "SELECT",    "Select the current element"),
             #(7, "HIT",      "Hit the current element"),
             #(8, "VERIFY",   "Verify the current URL"),
             #(9, "CLOSE",    "Close the current page"),
@@ -338,6 +342,7 @@ class TestDriverEnviroment:
     def reset(self):
         #self.board = numpy.zeros((3, 3)).astype(int)
         #self.state = [0]
+        self.driver.reset()
         return self.get_observation()
 
     def step(self, action):
@@ -456,6 +461,7 @@ class TestDriverEnviroment:
         observation = self.get_observation()
         print(np.sum(observation), observation.shape, str(observation))
         sum_obs = np.sum(observation[:,:3])  # only env_state
+        #sum_obs = np.sum(observation)  # only env_state
         print("sum_obs:", sum_obs)
         if sum_obs < 0.01:
             print("YOU WIN")
@@ -476,7 +482,7 @@ if __name__ == "__main__":
     print(env.get_observation())
     print(env.legal_actions())
     # 0 - wait, 1 - next,  2 - 1click, 3 - 1select, 4 - 1enter, 5 - click, 6 - enter, 7 - select
-    env.step("WAIT")
+    #env.step("WAIT")
     env.step("CHOOSE_FIRST_CLICK")
     env.step("NEXT")
     env.step("CLICK")

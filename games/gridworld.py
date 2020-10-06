@@ -176,7 +176,9 @@ class Game(AbstractGame):
         Returns:
             Initial observation of the game.
         """
-        return numpy.array(self.env.reset())
+        reset_env = numpy.array(self.env.reset())
+        print("reset_env:", reset_env)
+        return reset_env
 
     def close(self):
         """
