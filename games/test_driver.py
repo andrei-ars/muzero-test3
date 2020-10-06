@@ -21,6 +21,8 @@ except:
 #from gym import spaces
 #from gym.utils import seeding, EzPickle
 
+NUMBER_ACTIONS = 7
+
 
 class MuZeroConfig:
     def __init__(self):
@@ -29,7 +31,7 @@ class MuZeroConfig:
 
         ### Game
         self.observation_shape = (1, 6, 5)  # Dimensions of the game observation, must be 3D (channel, height, width). For a 1D array, please reshape it to (1, 1, length of array)
-        self.action_space = [i for i in range(7)]  # Fixed list of all possible actions. You should only edit the length
+        self.action_space = [i for i in range(NUMBER_ACTIONS)]  # Fixed list of all possible actions. You should only edit the length
         self.players = [i for i in range(1)]  # List of players. You should only edit the length
         self.stacked_observations = 0  # Number of previous observations and previous actions to add to the current observation
 
@@ -40,7 +42,7 @@ class MuZeroConfig:
         ### Self-Play
         self.num_workers = 1 # 4  # Number of simultaneous threads/workers self-playing to feed the replay buffer
         self.selfplay_on_gpu = False
-        self.max_moves = 30 #15  # Maximum number of moves if game is not finished before
+        self.max_moves = 40 #15  # Maximum number of moves if game is not finished before
         self.num_simulations = 20  # Number of future moves self-simulated
         self.discount = 0.997  # Chronological discount of the reward
         self.temperature_threshold = None  # Number of moves before dropping temperature to 0 (ie playing according to the max)
@@ -79,7 +81,7 @@ class MuZeroConfig:
         ### Training
         self.results_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../results", os.path.basename(__file__)[:-3], datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))  # Path to store the model weights and TensorBoard logs
         self.save_model = True  # Save the checkpoint in results_path as model.checkpoint
-        self.training_steps = 2000  # Total number of training steps (ie weights update according to a batch)
+        self.training_steps = 10000 # Total number of training steps (ie weights update according to a batch)
         self.batch_size = 1 # 128  # Number of parts of games to train on at each training step
         self.checkpoint_interval = 100  # Number of training steps before using the model for self-playing
         self.value_loss_weight = 1  # Scale the value loss to avoid overfitting of the value function, paper recommends 0.25 (See paper appendix Reanalyze)
@@ -255,7 +257,11 @@ class Webdriver_imitation:
         self.reset()
 
     def reset(self):
-        self.discovered_elements = {'clickables': ['Sign', 'Currency', 'Skip'], 'selectables': [], 'enterables': ['Hello']}
+        self.discovered_elements = {
+            'clickables': ['Sign', 'Currency', 'Skip'], 
+            'selectables': [], 
+            'enterables': ['Hi']
+            }
 
     def get_discovered_elements(self):
         return self.discovered_elements
@@ -281,6 +287,8 @@ def wrong_movement():
 
 
 class TestDriverEnviroment:
+    """This is enviroment for a test driver
+    """
     def __init__(self):
         self.seed()
         #self.board = numpy.zeros((3, 3)).astype(int)
@@ -318,19 +326,24 @@ class TestDriverEnviroment:
             #"ENTER-RND": "Enter random text",
             #"OPEN":     "Open the given website",
             (0, "NEXT",     "Go to the next active element"),
-            (1, "CHOOSE_FIRST_CLICK",  "Choose the firse clickable element"),
-            (2, "CHOOSE_FIRST_ENTER",  "Choose the firse enterable element"),
-            (3, "CHOOSE_FIRST_SELECT", "Choose the firse selectable element"),
-            (4, "CLICK",    "Click on the current element"),
-            (5, "ENTER",    "Enter DATA in the current element"),
-            (6, "SELECT",    "Select the current element"),
+            (1, "CLICK",    "Click on the current element"),
+            (2, "CHOOSE_FIRST_CLICK",  "Choose the firse clickable element"),
+            (3, "ENTER",    "Enter DATA in the current element"),
+            (4, "CHOOSE_FIRST_ENTER",  "Choose the firse enterable element"),
+            (5, "SELECT",    "Select the current element"),
+            (6, "CHOOSE_FIRST_SELECT", "Choose the firse selectable element"),
             #(7, "HIT",      "Hit the current element"),
             #(8, "VERIFY",   "Verify the current URL"),
             #(9, "CLOSE",    "Close the current page"),
             #(10, "WAIT",     "Wait 1 sec"),
         ]
+        self.possible_actions = self.possible_actions[:NUMBER_ACTIONS]
+
         self.action_number_to_cmd = {i: x[1] for i, x in enumerate(self.possible_actions)}
         self.action_number_to_description = {i: x[2] for i, x in enumerate(self.possible_actions)}
+
+        self.wins = 0
+        self.losses = 0
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -408,7 +421,8 @@ class TestDriverEnviroment:
 
         #reward = 1 if self.have_winner() else 0
         if self.have_winner():
-            reward = 1
+            self.wins += 1
+            reward = 5
 
         return self.get_observation(), reward, done, {}
 
@@ -458,11 +472,12 @@ class TestDriverEnviroment:
         #    return True
         #else:
         #    return False
+
         observation = self.get_observation()
-        print(np.sum(observation), observation.shape, str(observation))
-        sum_obs = np.sum(observation[:,:3])  # only env_state
         #sum_obs = np.sum(observation)  # only env_state
-        print("sum_obs:", sum_obs)
+        sum_obs = np.sum(observation[:,:3])  # only env_state
+        #print("sum_obs={}, wins={}\n{}".format(sum_obs, self.wins, str(observation)))
+        print("sum_obs={}, wins={}".format(sum_obs, self.wins))
         if sum_obs < 0.01:
             print("YOU WIN")
             #sys.exit()
