@@ -23,6 +23,10 @@ except:
 
 NUMBER_ACTIONS = 7
 
+WIN_REWARD = 5
+POS_REWARD = 1
+NEG_REWARD = -1
+
 
 class MuZeroConfig:
     def __init__(self):
@@ -42,7 +46,7 @@ class MuZeroConfig:
         ### Self-Play
         self.num_workers = 1 # 4  # Number of simultaneous threads/workers self-playing to feed the replay buffer
         self.selfplay_on_gpu = False
-        self.max_moves = 40 #15  # Maximum number of moves if game is not finished before
+        self.max_moves = 100 #15  # Maximum number of moves if game is not finished before
         self.num_simulations = 20  # Number of future moves self-simulated
         self.discount = 0.997  # Chronological discount of the reward
         self.temperature_threshold = None  # Number of moves before dropping temperature to 0 (ie playing according to the max)
@@ -267,8 +271,8 @@ class Webdriver_imitation:
         return self.site_elements
 
     def click(self, current_element_name):
-        print("clickables:", self.site_elements['clickables'])
-        print("current_element_name:", current_element_name)
+        #print("clickables:", self.site_elements['clickables'])
+        #print("current_element_name:", current_element_name)
         if current_element_name in self.site_elements['clickables']:
             index = self.site_elements['clickables'].index(current_element_name)
             self.site_elements['clickables'][index] = None
@@ -285,11 +289,11 @@ class Webdriver_imitation:
 
 def negative_reward():
     print("-1")
-    return -1
+    return NEG_REWARD
 
 def positive_reward():
     print("+1")
-    return +1
+    return POS_REWARD
 
 
 class TestDriverEnviroment:
@@ -433,7 +437,7 @@ class TestDriverEnviroment:
         #reward = 1 if self.have_winner() else 0
         if self.have_winner():
             self.wins += 1
-            reward = 5
+            reward = WIN_REWARD
 
         return self.get_observation(), reward, done, {}
 
