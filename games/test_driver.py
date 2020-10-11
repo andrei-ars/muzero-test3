@@ -25,7 +25,7 @@ NUMBER_ACTIONS = 7
 MAX_STEPS = 100
 
 WIN_REWARD = 3
-POS_REWARD = 0
+POS_REWARD = 1
 NEG_REWARD = 0
 
 
@@ -62,7 +62,7 @@ class MuZeroConfig:
         self.pb_c_init = 1.25
 
         ### Network
-        self.network = "fullyconnected"  # "resnet" / "fullyconnected"
+        self.network = "resnet"  # "resnet" / "fullyconnected"
         self.support_size = 10  # Value and reward are scaled (with almost sqrt) and encoded on a vector with a range of -support_size to support_size
         
         # Residual Network
