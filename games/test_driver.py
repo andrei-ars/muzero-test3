@@ -421,7 +421,9 @@ class TestDriverEnviroment:
 
         elif cmd in {"CLICK", "ENTER", "SELECT"}:
 
-            if not (self.chosen_type and self.chosen_number < len(site_elements[self.chosen_type])):
+            if self.chosen_number is None:
+                reward = negative_reward()
+            elif not (self.chosen_type and self.chosen_number < len(site_elements[self.chosen_type])):
                 reward = negative_reward()
             else:
                 #reward = positive_reward()
