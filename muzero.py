@@ -541,6 +541,7 @@ def hyperparameter_search(
 
 
 if __name__ == "__main__":
+    first_run = True
     if len(sys.argv) >= 2:
         # Train directly with "python muzero.py cartpole"
         muzero = MuZero(sys.argv[1])
@@ -569,8 +570,9 @@ if __name__ == "__main__":
 
     while True:
         # Configure running options
-        if len(sys.argv) >= 3:
+        if first_run and len(sys.argv) >= 3:
             choice = sys.argv[2]
+            first_run = False
         else:
             options = [
                 "Train",
