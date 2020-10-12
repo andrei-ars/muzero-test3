@@ -546,9 +546,9 @@ if __name__ == "__main__":
         # Train directly with "python muzero.py cartpole"
         muzero = MuZero(sys.argv[1])
         muzero.train()
-        print("\n===TEST===\n")
+        input("Test 1")
         muzero.test(render=True, opponent="self", muzero_player=None)
-        print("\n===TEST(2)===\n")
+        input("Test 2")
         muzero.test(render=True, opponent="self", muzero_player=None)
     else:
         print("\nWelcome to MuZero! Here's a list of games:")
