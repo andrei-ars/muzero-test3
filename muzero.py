@@ -546,10 +546,11 @@ if __name__ == "__main__":
         # Train directly with "python muzero.py cartpole"
         muzero = MuZero(sys.argv[1])
         muzero.train()
-        input("Test 1")
-        muzero.test(render=True, opponent="self", muzero_player=None)
-        input("Test 2")
-        muzero.test(render=True, opponent="self", muzero_player=None)
+        while True:
+            s = input("Press Enter to test the model or q to exit")
+            if s == "q":
+                break
+            muzero.test(render=True, opponent="self", muzero_player=None)
     else:
         print("\nWelcome to MuZero! Here's a list of games:")
         # Let user pick a game
