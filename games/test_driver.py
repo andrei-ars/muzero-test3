@@ -24,7 +24,7 @@ except:
 NUMBER_ACTIONS = 7
 MAX_STEPS = 100
 
-WIN_REWARD = 3
+WIN_REWARD = 1
 POS_REWARD = 0
 NEG_REWARD = 0
 
@@ -279,22 +279,23 @@ class Webdriver_imitation:
             index = self.site_elements['clickables'].index(current_element_name)
             self.site_elements['clickables'][index] = None
         else:
-            logging.warning("{} is not in the clickables list".format(current_element_name))
+            print("! {} is not in the clickables list".format(current_element_name))
+            sys.exit()
 
     def enter(self, current_element_name, data):
         if current_element_name in self.site_elements['enterables']:
             index = self.site_elements['enterables'].index(current_element_name)
             self.site_elements['enterables'][index] = None
         else:
-            logging.warning("{} is not in the enterables list".format(current_element_name))
-
+            print("! {} is not in the enterables list".format(current_element_name))
+            sys.exit()
 
 def negative_reward():
-    print("-1")
+    #print("-1")
     return NEG_REWARD
 
 def positive_reward():
-    print("+1")
+    #print("+1")
     return POS_REWARD
 
 
@@ -302,7 +303,11 @@ class TestDriverEnviroment:
     """This is enviroment for a test driver
     """
     def __init__(self):
+        
         self.step_count = 0
+        self.total_steps = 0
+        self.last_number_of_steps = 0
+
         self.seed()
         #self.board = numpy.zeros((3, 3)).astype(int)
         # Prepare the webdriver
@@ -351,6 +356,14 @@ class TestDriverEnviroment:
             #(10, "WAIT",     "Wait 1 sec"),
         ]
         self.possible_actions = self.possible_actions[:NUMBER_ACTIONS]
+        self.cmd_to_element_type = {
+            "CHOOSE_FIRST_CLICK": "clickables",
+            "CHOOSE_FIRST_SELECT": "selectables",
+            "CHOOSE_FIRST_ENTER": "enterables",
+            "CLICK": "clickables",
+            "SELECT": "selectables",
+            "ENTER": "enterables"
+        }        
 
         self.action_number_to_cmd = {i: x[1] for i, x in enumerate(self.possible_actions)}
         self.action_number_to_description = {i: x[2] for i, x in enumerate(self.possible_actions)}
@@ -368,6 +381,8 @@ class TestDriverEnviroment:
     def reset(self):
         #self.board = numpy.zeros((3, 3)).astype(int)
         #self.state = [0]
+        self.last_number_of_steps = self.step_count
+        self.step_count = 0
         self.driver.reset()
         return self.get_observation()
 
@@ -397,12 +412,7 @@ class TestDriverEnviroment:
             pass
 
         elif cmd in {"CHOOSE_FIRST_CLICK", "CHOOSE_FIRST_SELECT", "CHOOSE_FIRST_ENTER"}:
-            cmd_to_chosen_type = {
-                "CHOOSE_FIRST_CLICK": "clickables",
-                "CHOOSE_FIRST_SELECT": "selectables",
-                "CHOOSE_FIRST_ENTER": "enterables"
-            }
-            self.chosen_type = cmd_to_chosen_type[cmd]
+            self.chosen_type = self.cmd_to_element_type[cmd]
             if len(site_elements[self.chosen_type]) > 0:
                 #current_element = site_elements[self.chosen_type][0]
                 self.chosen_number = 0
@@ -420,12 +430,11 @@ class TestDriverEnviroment:
                 reward = negative_reward()
 
         elif cmd in {"CLICK", "ENTER", "SELECT"}:
-
             if self.chosen_number is None:
                 reward = negative_reward()
-            elif not (self.chosen_type and self.chosen_number < len(site_elements[self.chosen_type])):
+            elif self.chosen_type != self.cmd_to_element_type[cmd]:
                 reward = negative_reward()
-            else:
+            elif (self.chosen_type and self.chosen_number < len(site_elements[self.chosen_type])):
                 #reward = positive_reward()
                 current_element = site_elements[self.chosen_type][self.chosen_number]
                 if current_element is None: # perhaps, the element has been already used
@@ -438,15 +447,20 @@ class TestDriverEnviroment:
                         self.driver.enter(current_element, data="Hello world")
                     elif cmd == "SELECT":
                         pass
+            else:
+                reward = negative_reward()
 
         done = self.have_winner() or len(self.legal_actions()) == 0
 
         #reward = 1 if self.have_winner() else 0
         if self.have_winner():
-            self.wins += 1
             reward = WIN_REWARD * (1 - 0.9*(self.step_count / MAX_STEPS))
+            self.wins += 1
+            print("{}-th win in {} steps; reward={:.4f}".format(self.wins, self.step_count, reward))
+            self.last_number_of_steps = self.step_count
+            self.step_count = 0
 
-        return self.get_observation(), reward, done, {}
+        return self.get_observation_float(), reward, done, {}
 
     def get_observation(self):
         # It should return the current state as a numpy array of the float32 type
@@ -482,7 +496,10 @@ class TestDriverEnviroment:
         state = np.expand_dims(state, axis=0) # 3-dim. array is required
         #clickables = np.array()
         #state = [clickables, selectables, enterables]
-        return np.array(state, dtype=np.float32)
+        return state
+
+    def get_observation_float(self):
+        return np.array(self.get_observation(), dtype=np.float32)
 
     def legal_actions(self):
         legal = list(range(len(self.possible_actions)))
@@ -498,11 +515,9 @@ class TestDriverEnviroment:
         observation = self.get_observation()
         #sum_obs = np.sum(observation)  # only env_state
         sum_obs = np.sum(observation[:,:3])  # only env_state
-        print("sum_obs={}, wins={}\n{}".format(sum_obs, self.wins, str(observation)))
-        #print("sum_obs={}, wins={}".format(sum_obs, self.wins))
+        #print("sum_obs={}, wins={}\n{}".format(sum_obs, self.wins, str(observation)))
+        print("sum_obs={}, wins={}".format(sum_obs, self.wins))
         if sum_obs < 0.01:
-            print("YOU WIN")
-            #sys.exit()
             return True
         else:
             return False
